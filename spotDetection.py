@@ -2,18 +2,18 @@ import cv2
 import numpy as np
 import os
 
+def display_img(name, img):
+    cv2.imshow(name, img)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
+    
 def detectDots(orig_file, file_name):
     directory_path = os.path.dirname(__file__)
     orig_file_path = os.path.join(directory_path, orig_file) #img path
     orig_img = cv2.imread(orig_file_path) #read img
 
-    file_path = os.path.join(directory_path, file_name) #img path
-
-    img = cv2.imread(file_path) #read img
-    
-    # cv2.imshow("cropped image", img)
-    # cv2.waitKey(0)
-    # cv2.destroyAllWindows()
+    file_path = os.path.join(directory_path, file_name) #filtered img path
+    img = cv2.imread(file_path) #read filtered img
 
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     blur = cv2.GaussianBlur(gray, (0, 0), sigmaX=16, sigmaY=0)
@@ -28,11 +28,11 @@ def detectDots(orig_file, file_name):
     
     s1 = 3
     s2 = 25 #dot size
-    xcnts = [] 
+    xcnts = []
     
-    for cnt in cnts: 
-        if s1<cv2.contourArea(cnt)<s2: 
-            xcnts.append(cnt) 
+    for cnt in cnts:
+        if s1<cv2.contourArea(cnt)<s2:
+            xcnts.append(cnt)
             cv2.drawContours(orig_img, [cnt], -1, (255,105,180), 2)
     
     str = "Number of spots: {}".format(len(xcnts)) + "\n" #output
@@ -43,25 +43,21 @@ def detectDots(orig_file, file_name):
 
     str += "Spot locations: {}".format(avg_cnt)
 
-    cv2.imshow("grayscale", morph)
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
-    cv2.imshow("detected image", orig_img)
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
+    # display_img("grayscale", morph)
+    display_img("detected image", orig_img)
 
     return str
 
 def detectRect(file_name, color):
-    colors = {'red': [np.array([20, 255, 255]), np.array([0, 200, 180])],
+    colors = {'red': [np.array([100, 255, 255]), np.array([0, 200, 180])],
               'green': [np.array([100, 255, 255]), np.array([40, 200, 180])],
               'blue': [np.array([120, 255, 255]), np.array([90, 130, 180])]}
+            #   'red': [np.array([190,255,255]), np.array([160,20,70])], works for redtest2 not redtest1
 
     image = cv2.imread(file_name) #read img
-    cv2.imshow("original image", image)
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
+    display_img("original image", image)
     buf = cv2.addWeighted(image, 1.1, image, 0, 0.8) #add contrast
+    # display_img("buf", buf)
     hsv = cv2.cvtColor(buf, cv2.COLOR_BGR2HSV)
     mask = cv2.inRange(hsv, colors[color][1], colors[color][0])
     thresh = cv2.adaptiveThreshold(mask,255,cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY_INV,21,9)
@@ -71,27 +67,29 @@ def detectRect(file_name, color):
     for c in cnts:
         cv2.drawContours(thresh, [c], -1, (255,255,255), -1)
 
-    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (5,5))
+    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (2, 2))
     opening = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, kernel, iterations=4)
 
     cnts = cv2.findContours(opening, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE) #draw outline
     cnts = cnts[0] if len(cnts) == 2 else cnts[1]
-    area_treshold = 10000
+    area_treshold = 5000
 
     blank = np.zeros(image.shape, dtype=np.uint8)
     blank = cv2.cvtColor(blank, cv2.COLOR_BGR2GRAY)
     cropped = blank.copy()
     for c in cnts:
         if cv2.contourArea(c) > area_treshold:
-            epsilon = 0.1*cv2.arcLength(c,True)
+            epsilon = 0.05*cv2.arcLength(c,True)
             c2 = cv2.approxPolyDP(c,epsilon,True)
-            cropped = cv2.drawContours(blank, [c2], -1, (255, 255, 255), cv2.FILLED)
+            if len(c2) == 4:
+                cropped = cv2.drawContours(blank, [c2], -1, (255, 255, 255), cv2.FILLED)
+            else:
+                rect = cv2.minAreaRect(c)
+                box = cv2.boxPoints(rect)
+                box = np.intp(box)
+                cropped = cv2.drawContours(blank,[box],-1,(255,255,255),cv2.FILLED)
             # cropped = cv2.drawContours(blank, [c2], -1, (255, 255, 255), 5)
     
-    # cv2.imshow("whatisthiseven", thresh)
-    # cv2.waitKey(0)
-    # cv2.destroyAllWindows()
-
     # cv2.imshow('thresh', thresh)
     filtered = cv2.bitwise_and(~image, ~image,mask = cropped)
     border = cv2.findContours(blank, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
@@ -102,8 +100,8 @@ def detectRect(file_name, color):
     # cv2.imshow('image', filtered)
     # cv2.waitKey()
 
-detectRect("redtest.jpg", "red")
+# detectRect("redtest2.jpg", "red")
 detectRect("red_test.jpg", "red")
-detectRect("green_test.jpg", "green")
+detectRect("greentest2.jpg", "green")
 detectRect("bluetest.jpg", "blue")
 detectRect("blue_test.jpg", "blue")
