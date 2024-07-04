@@ -1,0 +1,27 @@
+Purpose:
+Detect error spots on solid backgrounds of red, green, and blue
+
+Code logic:
+ - detectRect: filter by selected color using lower and upper bounds for HSV values
+    - key functions:
+        - inRange: https://docs.opencv.org/3.4/da/d97/tutorial_threshold_inRange.html
+            - search for areas with HSV values within the bounds
+        - approxPolyDP: https://docs.opencv.org/4.x/d3/dc0/group__imgproc__shape.html
+            - draw a polygon around the detected color area
+        - minAreaRect: https://docs.opencv.org/4.x/dd/d49/tutorial_py_contour_features.html
+            - if no quadrilateral shape found, draw the minimum bounding rectangle instead
+        - bitwise_and: https://docs.opencv.org/4.x/d0/d86/tutorial_py_image_arithmetics.html
+            - remove parts of the picture outside the selected rectanglular area
+ - detectDots: detect dots within the previously filtered picture
+    - key functions:
+        - contourArea: https://docs.opencv.org/4.x/dd/d49/tutorial_py_contour_features.html
+            - filter detected contours by area to limit to dots of size 3 to 25
+    - print out the number of detected dots and their approximate locations
+
+Running the code:
+ - Python: call detectRect followed by the test image name and the color of its background 
+    - (ex. detectRect("redtest.jpg", "red"))
+ - Android: 
+    - generates solid backgrounds of red, green, or blue with a random number of dots (up to ~10) at random locations on the screen
+        - click the button with the corresponding color you would like to test and take a photo of the screen with another device
+    - Work in Progress: translate OpenCV code from Python to Java
