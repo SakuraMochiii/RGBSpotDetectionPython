@@ -1,1 +1,1 @@
-Detect spots on red, green, and blue backgrounds using python opencv.
+A script to detect spots using red, green, and blue backgrounds on a POS device using the Python OpenCV library.

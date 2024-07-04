@@ -2,12 +2,16 @@ import cv2
 import numpy as np
 import os
 
+'''Displays the specified image, press any key to close'''
 def display_img(name, img):
     cv2.imshow(name, img)
     cv2.waitKey(0)
     cv2.destroyAllWindows()
     
+'''main function to detect'''
 def detectDots(orig_file, file_name):
+
+    '''read image from path'''
     directory_path = os.path.dirname(__file__)
     orig_file_path = os.path.join(directory_path, orig_file) #img path
     orig_img = cv2.imread(orig_file_path) #read img
@@ -15,6 +19,7 @@ def detectDots(orig_file, file_name):
     file_path = os.path.join(directory_path, file_name) #filtered img path
     img = cv2.imread(file_path) #read filtered img
 
+    '''process image'''
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     blur = cv2.GaussianBlur(gray, (0, 0), sigmaX=16, sigmaY=0)
     divide = cv2.divide(gray, blur, scale=1)
@@ -23,6 +28,7 @@ def detectDots(orig_file, file_name):
     morph = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, kernel)
     cnts = cv2.findContours(morph, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)[-2] #contours
 
+    '''draw contours and filter by area'''
     border = morph.copy()
     cv2.drawContours(border, cnts, -1, (0, 0, 0), 2)
     
@@ -35,6 +41,7 @@ def detectDots(orig_file, file_name):
             xcnts.append(cnt)
             cv2.drawContours(orig_img, [cnt], -1, (255,105,180), 2)
     
+    '''print out results'''
     str = "Number of spots: {}".format(len(xcnts)) + "\n" #output
 
     avg_cnt = []
@@ -43,11 +50,13 @@ def detectDots(orig_file, file_name):
 
     str += "Spot locations: {}".format(avg_cnt)
 
+    '''display final image with detected spots'''
     # display_img("grayscale", morph)
     display_img("detected image", orig_img)
 
     return str
 
+'''helper function to filter by color'''
 def detectRect(file_name, color):
     colors = {'red': [np.array([100, 255, 255]), np.array([0, 200, 180])],
               'green': [np.array([100, 255, 255]), np.array([40, 200, 180])],
@@ -88,20 +97,17 @@ def detectRect(file_name, color):
                 box = cv2.boxPoints(rect)
                 box = np.intp(box)
                 cropped = cv2.drawContours(blank,[box],-1,(255,255,255),cv2.FILLED)
-            # cropped = cv2.drawContours(blank, [c2], -1, (255, 255, 255), 5)
-    
-    # cv2.imshow('thresh', thresh)
+
+    # display_img("thresh", thresh)
     filtered = cv2.bitwise_and(~image, ~image,mask = cropped)
     border = cv2.findContours(blank, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
     filtered = cv2.drawContours(filtered, border[0], -1, (255, 255, 255), 5)
     cv2.imwrite("filtered.jpg", ~filtered)
     print(detectDots(file_name, "filtered.jpg"))
-    # cv2.imshow('opening', (255 - opening))
-    # cv2.imshow('image', filtered)
-    # cv2.waitKey()
+    # display_img('opening', (255 - opening))
+    # display_img('image', filtered)
 
-# detectRect("redtest2.jpg", "red")
-detectRect("red_test.jpg", "red")
+detectRect("redtest.jpg", "red")
 detectRect("greentest2.jpg", "green")
 detectRect("bluetest.jpg", "blue")
 detectRect("blue_test.jpg", "blue")
